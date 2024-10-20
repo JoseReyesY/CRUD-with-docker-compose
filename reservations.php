@@ -29,6 +29,14 @@ if (isset($_POST['submit'])) {
     $finish_date = mysqli_real_escape_string($connect, $_POST['reservation_departure_date']);
     $room_type = mysqli_real_escape_string($connect, $_POST['type']);
 
+    // Crear objetos DateTime para calcular la diferencia
+    $date_inicio = new DateTime($start_date);
+    $date_fin = new DateTime($finish_date);
+
+    // Calcular la diferencia
+    $diferencia = $date_inicio->diff($date_fin);
+    $dias = $diferencia->days;
+
     // Query para seleccionar habitaciones
     $select_query = "SELECT * FROM rooms WHERE available='1' and type='$room_type'";
     $result = mysqli_query($connect, $select_query);
@@ -36,7 +44,13 @@ if (isset($_POST['submit'])) {
     if (mysqli_num_rows($result) > 0) {
         $room = mysqli_fetch_assoc($result);
         $id_room = $room['room_number'];
-        $price = 200;
+        $type = $room['type'];
+
+        if($type == 1) {
+            $price = 200 * $dias;
+        } else if($type == 2) {
+            $price = 350 * $dias;
+        }
 
         // Query para insertar usuarios
         $insert_query = "INSERT INTO reservations (id_user, id_room, start_date, finish_date, price) VALUES ('$user_id', '$id_room', '$start_date', '$finish_date', '$price')";

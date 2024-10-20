@@ -79,12 +79,12 @@ if (isset($_GET['reservation_id'])) {
                 </tr>
                 <tr>
                     <td>Precio</td>
-                    <td>$<?php echo $reservation['price']; ?></td>
+                    <td>$<?php echo $reservation['price']; ?>.00</td>
                 </tr>
             </tbody>
         </table>
 
-        <a href="index.php" class="btn btn-primary">Volver a la Página Principal</a>
+        <a href="login.php" class="btn btn-primary">Volver al login</a>
     </div>
 
     
