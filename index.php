@@ -58,7 +58,6 @@ if (isset($_GET['delete'])) {
         }
 
         header {
-            padding: 20px;
             text-align: center;
             background-color: #007bff;
             color: white;

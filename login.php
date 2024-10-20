@@ -16,11 +16,12 @@ if (isset($_POST['enviar'])) {
     // Cifrar la contraseña antes de almacenarla
     $hashed_password = password_hash($user_password, PASSWORD_DEFAULT);
 
+    // Query para insertar usuarios
     $insert_query = "INSERT INTO users (name, last_name, email, password, phone) VALUES ('$user_name', '$user_last_name', '$user_email', '$hashed_password', '$user_phone')";
 
     if (mysqli_query($connect, $insert_query)) {
         // Redireccionar después de la inserción exitosa
-        header('Location: reservations.php');
+        header('Location: reservations.php?id='.$user_id);
         exit();
     } else {
         echo "<div class='alert alert-danger' role='alert'>Error al registrarse: " . mysqli_error($connect) . "</div>";
@@ -36,17 +37,19 @@ if (isset($_POST['comprobar'])) {
         header('Location: admin.php');
         exit();
     } else {
-        $select_query = "SELECT password FROM users WHERE email='$username'";
+        // Query para validar las credenciales del usuario
+        $select_query = "SELECT * FROM users WHERE email='$username'";
         $result = mysqli_query($connect, $select_query);
     
         if (mysqli_num_rows($result) > 0) {
             $user = mysqli_fetch_assoc($result);
             $password_from_db = $user['password']; // Aquí estará el hash de la contraseña
+            $user_id = $user['id'];
     
             // Verificar la contraseña usando password_verify
             if (password_verify($password, $password_from_db)) {
                 // Redireccionar si las credenciales son correctas
-                header('Location: reservations.php');
+                header('Location: reservations.php?id='.$user_id);
                 exit();
             } else {
                 echo "<div class='alert alert-info' role='alert'>No se encontraron citas.</div>";

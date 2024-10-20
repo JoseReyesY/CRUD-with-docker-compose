@@ -1,41 +1,46 @@
 <?php
 session_start();
 
-// Verificar si el usuario seleccionó un rol en login.php y almacenar en la sesión
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['role'])) {
-    $role = $_POST['role'];
-    $_SESSION['role'] = $role;
-} else {
-    // Si ya existe un rol en la sesión, usarlo
-    $role = $_SESSION['role'] ?? null;
-}
-
-// Redirigir al login si no se ha seleccionado un rol y no se está enviando una cita
-if (!$role && !isset($_POST['submit'])) {
-    // header('Location: loginF.php');
-    //exit;
-}
-
 // Conexión a la base de datos
 $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
 
-// Manejo de eliminación de citas
+// Registro de habitaciones
+if (isset($_POST['createRoom'])) {
+    $room_type = mysqli_real_escape_string($connect, $_POST['type']);
+    $room_is_available = mysqli_real_escape_string($connect, $_POST['available']);
+
+    // Query para insertar usuarios
+    $insert_query = "INSERT INTO rooms (type, available) VALUES ('$room_type', '$room_is_available')";
+
+    if (mysqli_query($connect, $insert_query)) {
+        // Redireccionar después de la inserción exitosa
+        header('Location:'.$_SERVER['PHP_SELF'],);
+        exit();
+    } else {
+        echo "<div class='alert alert-danger' role='alert'>Error al registrarse: " . mysqli_error($connect) . "</div>";
+    }
+}
+
+// Edición de habitaciones
+if (isset($_POST['editRoom'])) {
+    $id = intval($_POST['room_number']);
+    $type = mysqli_real_escape_string($connect, $_POST['type']);
+    $available = mysqli_real_escape_string($connect, $_POST['available']);
+
+    $update_query = "UPDATE rooms SET type = '$type', available = '$available' WHERE room_number = $id";
+    //$update_query = "SELECT rooms SET patient_name = '$patient_name', appointment_date = '$appointment_date', details = '$details' WHERE id = $id";
+
+    mysqli_query($connect, $update_query);
+}
+
+// Eliminación de habitaciones
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-    $delete_query = "DELETE FROM reservations WHERE id = $id";
+    $delete_query = "DELETE FROM rooms WHERE room_number = $id";
     mysqli_query($connect, $delete_query);
 }
 
-// Manejo de edición de citas - TODO
-// if (isset($_POST['edit'])) {
-//     $id = intval($_POST['id']);
-//     $patient_name = mysqli_real_escape_string($connect, $_POST['patient_name']);
-//     $appointment_date = mysqli_real_escape_string($connect, $_POST['appointment_date']);
-//     $details = mysqli_real_escape_string($connect, $_POST['details']);
 
-//     $update_query = "UPDATE appointments SET patient_name = '$patient_name', appointment_date = '$appointment_date', details = '$details' WHERE id = $id";
-//     mysqli_query($connect, $update_query);
-// }
 ?>
 
 <!DOCTYPE html>
@@ -72,6 +77,12 @@ if (isset($_GET['delete'])) {
             color: #007bff;
         }
 
+        .title--container {
+
+            display: flex;
+            justify-content: space-between;
+        }
+
         .info--container {
             width: 100%;
             margin-bottom: 16px;
@@ -94,24 +105,26 @@ if (isset($_GET['delete'])) {
         </header>
 
         <div class="container mt-5">
-            <h2>Lista de Citas Registradas</h2>
+            <div class="title--container mb-3">
+                <h2>Lista de Habitaciones Registradas</h2>
+                <button class="btn btn-primary" onclick="showModal()">Agregar habitación</button>
+            </div>
             <?php
-            $query = "SELECT * FROM appointments ORDER BY appointment_date ASC";
+            $query = "SELECT * FROM rooms";
             $response = mysqli_query($connect, $query);
 
             if ($response) {
                 echo '<table class="table table-bordered">';
-                echo '<thead><tr><th>ID</th><th>Paciente</th><th>Fecha</th><th>Detalles</th><th>Acciones</th></tr></thead>';
+                echo '<thead><tr><th>Número de Habitación</th><th>Tipo</th><th>Disponible</th>';
                 echo '<tbody>';
                 while ($row = mysqli_fetch_assoc($response)) {
                     echo '<tr>';
-                    echo '<td>' . $row['id'] . '</td>'; 
-                    echo '<td>' . $row['patient_name'] . '</td>';
-                    echo '<td>' . $row['appointment_date'] . '</td>';
-                    echo '<td>' . $row['details'] . '</td>';
+                    echo '<td>' . $row['room_number'] . '</td>'; 
+                    echo '<td>' . $row['type'] . '</td>';
+                    echo '<td>' . $row['available'] . '</td>';
                     echo '<td>';
-                    echo '<button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" data-id="' . $row['id'] . '" data-name="' . $row['patient_name'] . '" data-date="' . $row['appointment_date'] . '" data-details="' . $row['details'] . '">Editar</button>';
-                    echo ' <a href="?delete=' . $row['id'] . '" class="btn btn-danger" onclick="return confirm(\'¿Estás seguro de que deseas eliminar esta cita?\')">Eliminar</a>';
+                    echo '<button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" data-id="' . $row['room_number'] . '" data-name="'. $row['room_number'] . '" data-name="' . $row['type'] . '" data-details="' . $row['available'] . '">Editar</button>';
+                    echo ' <a href="?delete=' . $row['room_number'] . '." class="btn btn-danger" onclick="return confirm(\'¿Estás seguro de que deseas eliminar esta reservación?\')">Eliminar</a>';
                     echo '</td>';
                     echo '</tr>';
                 }
@@ -120,39 +133,76 @@ if (isset($_GET['delete'])) {
                 echo "<div class='alert alert-info' role='alert'>No se encontraron citas.</div>";
             }
             ?>
-            <!-- Botón para regresar al login -->
-            <div class="text-center mt-4">
-                <a href="login.php" class="btn btn-secondary">Regresar al Login</a>
+            
+        </div>
+
+        <!-- Modal para crear habitación -->
+        <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="loginModalLabel">Agregar habitación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="post" action="">
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Tipo:</label>
+                                <select name="type" id="type" required class="form-control">
+                                    <option value="0">Seleccione la habitación</option>
+                                    <option value="1">Sencilla</option>
+                                    <option value="2">Doble</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="available" class="form-label">Disponible:</label>
+                                <select name="available" id="available" required class="form-control">
+                                    <option value="1">Disponible</option>
+                                    <option value="0">Ocupada</option>
+                                </select>
+                            </div>
+                            <button type="submit" name="createRoom" id="createRoom" class="btn btn-primary">Registrarse</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Modal para editar cita -->
+        <!-- Botón para regresar al login -->
+        <div class="text-center mt-4">
+            <a href="login.php" class="btn btn-secondary">Regresar al Login</a>
+        </div>
+
+        <!-- Modal para editar reservación -->
         <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form method="post">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="editModalLabel">Editar Cita</h5>
+                            <h5 class="modal-title" id="editModalLabel">Editar Reservación</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <input type="hidden" name="id" id="edit-id">
+                            <input type="hidden" name="room_number" id="edit-id">
                             <div class="mb-3">
-                                <label for="edit-patient_name" class="form-label">Nombre del Paciente:</label>
-                                <input type="text" id="edit-patient_name" name="patient_name" class="form-control" required>
+                                <label for="edit-room_type" class="form-label">Tipo de Habitación:</label>
+                                <select name="type" id="edit-room_type" required class="form-control">
+                                    <option value="0">Seleccione la habitación</option>
+                                    <option value="1">Sencilla</option>
+                                    <option value="2">Doble</option>
+                                </select>
                             </div>
                             <div class="mb-3">
-                                <label for="edit-appointment_date" class="form-label">Fecha de la Cita:</label>
-                                <input type="date" id="edit-appointment_date" name="appointment_date" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit-details" class="form-label">Detalles:</label>
-                                <textarea id="edit-details" name="details" rows="4" class="form-control" required></textarea>
+                                <label for="edit-available" class="form-label">Disponible:</label>
+                                <select name="available" id="edit-available" required class="form-control">
+                                    <option value="1">Disponible</option>
+                                    <option value="0">Ocupada</option>
+                                </select>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            <button type="submit" name="edit" class="btn btn-primary">Guardar Cambios</button>
+                            <button type="submit" name="editRoom" class="btn btn-primary">Guardar Cambios</button>
                         </div>
                     </form>
                 </div>
@@ -162,6 +212,11 @@ if (isset($_GET['delete'])) {
         <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
+            function showModal() {
+                var modal = new bootstrap.Modal(document.getElementById('roomModal'));
+                modal.show();
+            }
+
             // Llenar el modal de edición con los datos de la cita
             const editModal = document.getElementById('editModal');
             editModal.addEventListener('show.bs.modal', event => {
@@ -177,7 +232,7 @@ if (isset($_GET['delete'])) {
                 const editAppointmentDate = editModal.querySelector('#edit-appointment_date');
                 const editDetails = editModal.querySelector('#edit-details');
 
-                modalTitle.textContent = 'Editar Cita: ' + name;
+                modalTitle.textContent = 'Editar Reservación: ' + name;
                 editId.value = id;
                 editPatientName.value = name;
                 editAppointmentDate.value = date;
