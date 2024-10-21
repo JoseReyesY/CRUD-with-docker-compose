@@ -57,6 +57,15 @@ if (isset($_POST['comprobar'])) {
         }
     }
 }
+
+// Lógica de inserción y redirección (Registro)
+if (isset($_POST['search'])) {
+    $reservation_id = mysqli_real_escape_string($connect, $_POST['reservation_id']);
+    $reservation_last_name = mysqli_real_escape_string($connect, $_POST['reservation_last_name']);
+
+    header('Location: confirmation.php?reservation_id=' . $reservation_id . '&last_name=' . $reservation_last_name);
+    exit(); 
+}
 ?>
 
 <!DOCTYPE html>
@@ -80,6 +89,10 @@ if (isset($_POST['comprobar'])) {
             padding: 20px;
             margin: 0 auto;
         }
+
+        .search-button {
+            display: block;
+        }
     </style>
 
     <!-- Bootstrap JS -->
@@ -101,7 +114,8 @@ if (isset($_POST['comprobar'])) {
                 </div>
                 <button type="submit" name="comprobar" class="btn btn-primary mb-3">Iniciar Sesión</button>
             </form>
-            <button type="button" class="btn btn-secondary" onclick="showModal()">Registrarse</button>
+            <button type="button" class="btn btn-secondary mb-3" onclick="showModal()">Registrarse</button>
+            <button type="button" class="btn btn-secondary search-button" onclick="showSearchModal()">Buscar Reservación</button>
         </div>
     </div>
 
@@ -147,11 +161,45 @@ if (isset($_POST['comprobar'])) {
         </div>
     </div>
 
+    <!-- Modal para editar cita -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editModalLabel">Buscar Reservación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="edit-id">
+                        <div class="mb-3">
+                            <label for="reservation_id" class="form-label">Identificador de la Reservación:</label>
+                            <input type="number" id="reservation_id" name="reservation_id" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reservation_last_name" class="form-label">Apellido de la Reservación:</label>
+                            <input type="text" id="reservation_last_name" name="reservation_last_name" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" name="search" class="btn btn-primary">Buscar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         function showModal() {
             var modal = new bootstrap.Modal(document.getElementById('loginModal'));
             modal.show();
         }
+
+        function showSearchModal() {
+                var modal = new bootstrap.Modal(document.getElementById('searchModal'));
+                modal.show();
+            }
     </script>
 </body>
 </html>

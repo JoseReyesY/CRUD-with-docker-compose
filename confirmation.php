@@ -1,6 +1,7 @@
 <?php
 session_start();
 $reservation_id = $_GET['reservation_id'];
+$reservation_last_name = $_GET['last_name'];
 
 // Conexión a la base de datos
 $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
@@ -12,7 +13,7 @@ if (isset($_GET['reservation_id'])) {
               FROM reservations r
               JOIN users u ON r.id_user = u.id
               JOIN rooms ro ON r.id_room = ro.room_number
-              WHERE r.id = '$reservation_id'";
+              WHERE r.id = '$reservation_id' AND u.last_name = '$reservation_last_name'";
     $result = mysqli_query($connect, $query);
 
     if ($result && mysqli_num_rows($result) > 0) {

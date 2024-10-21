@@ -76,13 +76,6 @@ if (isset($_POST['submit'])) {
         echo "<div class='alert alert-danger' role='alert'>No hay disponibilidad en las fechas seleccionadas</div>";
     }
 }
-
-// Lógica de inserción y redirección (Registro)
-if (isset($_POST['search'])) {
-    $reservation_id = mysqli_real_escape_string($connect, $_POST['reservation_id']);
-    header('Location: confirmation.php?reservation_id=' . $reservation_id);
-    exit(); 
-}
 ?>
 
 <!DOCTYPE html>
@@ -148,11 +141,6 @@ if (isset($_POST['search'])) {
         <header>
             <h1>Reservaciones Hotel</h1>
         </header>
-        
-        <div class="centered">
-            <button type="submit" name="submit" class="btn btn-primary" onclick="showModal()">Buscar Reservación</button>
-
-        </div>
 
         <div class="container mt-5">
             <h2>Bienvenido, <?php echo $user_name; ?></h2>
@@ -182,36 +170,5 @@ if (isset($_POST['search'])) {
                 <button type="submit" name="submit" class="btn btn-primary">Agregar Cita</button>
             </form>
         </div>
-
-        <!-- Modal para editar cita -->
-        <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="post">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="editModalLabel">Buscar Reservación</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" name="id" id="edit-id">
-                            <div class="mb-3">
-                                <label for="reservation_id" class="form-label">Identificador de la Reservación:</label>
-                                <input type="number" id="reservation_id" name="reservation_id" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            <button type="submit" name="search" class="btn btn-primary">Buscar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <script>
-            function showModal() {
-                var modal = new bootstrap.Modal(document.getElementById('searchModal'));
-                modal.show();
-            }
-        </script>
     </body>
 </html>
