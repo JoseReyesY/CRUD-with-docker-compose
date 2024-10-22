@@ -18,7 +18,10 @@ $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
         }
 
         .container {
+            margin-top: 40px;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
             background-color: white;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
@@ -36,12 +39,21 @@ $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
         }
 
         h2 {
+            margin-bottom: 16px;
             color: #007bff;
         }
 
-        .title--container {
-            display: flex;
-            justify-content: space-between;
+        li {
+            margin-bottom: 16px;
+        }
+
+        a {
+            text-decoration: none;
+            color: black;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -50,8 +62,12 @@ $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
         <h1>Reservaciones Hotel</h1>
     </header>
 
-    <div>
-        <a href="roomsControl.php">Control de Habitaciones</a>
+    <div class="container">
+        <h2>Páginas de control</h2>
+        <ul>
+            <li><a href="roomsControl.php">Control de Habitaciones</a></li>
+            <li><a href="reservationsControl.php">Control de Reservaciones</a></li>
+        </ul>
     </div>
 </body>
 </html>

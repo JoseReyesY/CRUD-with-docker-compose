@@ -4,32 +4,13 @@ session_start();
 // Conexión a la base de datos
 $connect = mysqli_connect('db', 'php_docker', 'password', 'php_docker');
 
-// Registro de habitaciones
-if (isset($_POST['createRoom'])) {
-    // Obtencion de los datos del formulario
-    $room_type = mysqli_real_escape_string($connect, $_POST['type']);
-    $room_is_available = mysqli_real_escape_string($connect, $_POST['available']);
-
-    // Query para insertar habitaciones
-    $insert_query = "INSERT INTO rooms (type, available) VALUES ('$room_type', '$room_is_available')";
-
-    if (mysqli_query($connect, $insert_query)) {
-        // Redireccionar después de la inserción exitosa
-        header('Location: ' . $_SERVER['PHP_SELF']);
-        exit();
-    } else {
-        echo "<div class='alert alert-danger' role='alert'>Error al registrarse: " . mysqli_error($connect) . "</div>";
-    }
-}
-
-// Edición de habitaciones
-if (isset($_POST['editRoom'])) {
-    // Obtencion de los datos del formulario
+// Edición de reservaciones
+if (isset($_POST['editReservation'])) {
     $id = intval($_POST['room_number']);
     $type = mysqli_real_escape_string($connect, $_POST['type']);
     $available = mysqli_real_escape_string($connect, $_POST['available']);
 
-    // Query para actualizar habitaciones
+    // Query para actualizar reservaciones
     $update_query = "UPDATE rooms SET type = '$type', available = '$available' WHERE room_number = $id";
     mysqli_query($connect, $update_query);
 }
@@ -37,39 +18,42 @@ if (isset($_POST['editRoom'])) {
 // Eliminación de habitaciones
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
-
-    // Query para borrar habitaciones
-    $delete_query = "DELETE FROM rooms WHERE room_number = $id";
+    $delete_query = "DELETE FROM reservation WHERE room_number = $id";
     mysqli_query($connect, $delete_query);
 }
 
-// Logica de paginacion para mostrar las habitaciones
 // Número de habitaciones por página
 $rooms_per_page = 10;
 
+// Página actual (si no se envía, asume que es la primera página)
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 
+// Calcular el desplazamiento (OFFSET) para la consulta
 $offset = ($page - 1) * $rooms_per_page;
 
-// Query para contar el número total de habitaciones
+// Consulta para contar el número total de habitaciones
 $total_query = "SELECT COUNT(*) as total FROM rooms";
 $total_result = mysqli_query($connect, $total_query);
 $total_rooms = mysqli_fetch_assoc($total_result)['total'];
 
+// Calcular el número total de páginas
 $total_pages = ceil($total_rooms / $rooms_per_page);
 
-// Query para obtener las habitaciones para la página actual
-$query = "SELECT * FROM rooms LIMIT $rooms_per_page OFFSET $offset";
+// Consulta para obtener las habitaciones para la página actual
+$query = "SELECT r.*, u.name as user_name, u.last_name as user_last_name, ro.type as room_type
+            FROM reservations r
+            JOIN users u ON r.id_user = u.id
+            JOIN rooms ro ON r.id_room = ro.room_number
+            LIMIT $rooms_per_page OFFSET $offset";
 $response = mysqli_query($connect, $query);
 ?>
 
-<!-- HTML de la pagina -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Habitaciones</title>
+    <title>Gestión de Reservaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -115,23 +99,20 @@ $response = mysqli_query($connect, $query);
         <h1>Reservaciones Hotel</h1>
     </header>
 
-    <!-- Contenedor principal -->
     <div class="container mt-5">
         <div class="title--container mb-3">
-            <h2>Lista de Habitaciones Registradas</h2>
-            <button class="btn btn-primary" onclick="showModal()">Agregar habitación</button>
+            <h2>Lista de Reservaciones Registradas</h2>
         </div>
 
         <?php
-        // Si hay habitaciones se muestra la tabla completa
         if (mysqli_num_rows($response) > 0) {
             echo '<table class="table table-bordered">';
-            echo '<thead><tr><th>Número de Habitación</th><th>Tipo</th><th>Disponible</th><th>Acciones</th></tr></thead>';
+            echo '<thead><tr><th>Identificador de la reservación</th><th>Nombre del Huesped</th><th>Fecha de Llegada</th><th>Fecha de Salida</th><th>Acciones</th></tr></thead>';
             echo '<tbody>';
             while ($row = mysqli_fetch_assoc($response)) {
                 echo '<tr>';
-                echo '<td>' . $row['room_number'] . '</td>'; 
-                echo '<td>' . ($row['type'] == 1 ? 'Sencilla' : 'Doble') . '</td>';
+                echo '<td>' . $row['id'] . '</td>'; 
+                echo '<td>' . $row['u.name'] . ' ' . $row['u.last_name'] . '</td>';
                 echo '<td>' . ($row['available'] == 1 ? 'Disponible' : 'Ocupada') . '</td>';
                 echo '<td>';
                 echo '<button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editModal" data-id="' . $row['room_number'] . '" data-name="'. $row['room_number'] . '" data-name="' . $row['type'] . '" data-details="' . $row['available'] . '">Editar</button>';
@@ -141,8 +122,7 @@ $response = mysqli_query($connect, $query);
             }
             echo '</tbody></table>';
         } else {
-            // Si no hay habitaciones se muestra la alerta
-            echo "<div class='alert alert-info' role='alert'>No se encontraron habitaciones.</div>";
+            echo "<div class='alert alert-info' role='alert'>No se encontraron reservaciones.</div>";
         }
 
         // Mostrar paginación
@@ -172,11 +152,11 @@ $response = mysqli_query($connect, $query);
     </div>
 
     <!-- Modal para crear habitación -->
-    <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
+    <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="roomModalLabel">Agregar habitación</h5>
+                    <h5 class="modal-title" id="loginModalLabel">Agregar habitación</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">

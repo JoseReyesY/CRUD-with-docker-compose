@@ -33,12 +33,25 @@ if (isset($_POST['submit'])) {
     $date_inicio = new DateTime($start_date);
     $date_fin = new DateTime($finish_date);
 
-    // Calcular la diferencia
+    // Calcular la diferencia de días
     $diferencia = $date_inicio->diff($date_fin);
     $dias = $diferencia->days;
 
-    // Query para seleccionar habitaciones
-    $select_query = "SELECT * FROM rooms WHERE available='1' and type='$room_type'";
+    // Generar un identificador alfanumérico aleatorio de 12 caracteres
+    $reservation_id = bin2hex(random_bytes(4)); // Genera un string aleatorio de 12 caracteres
+
+    // Query para seleccionar habitaciones disponibles en base a las fechas y tipo de habitación
+    $select_query = "
+        SELECT * 
+        FROM rooms 
+        WHERE available='1' 
+        AND type='$room_type'
+        AND room_number NOT IN (
+            SELECT id_room 
+            FROM reservations 
+            WHERE ('$start_date' < finish_date AND '$finish_date' > start_date)
+        )
+    ";
     $result = mysqli_query($connect, $select_query);
 
     if (mysqli_num_rows($result) > 0) {
@@ -46,36 +59,33 @@ if (isset($_POST['submit'])) {
         $id_room = $room['room_number'];
         $type = $room['type'];
 
+        // Calcular el precio basado en el tipo de habitación y los días de la estancia
         if($type == 1) {
             $price = 200 * $dias;
         } else if($type == 2) {
             $price = 350 * $dias;
         }
 
-        // Query para insertar usuarios
-        $insert_query = "INSERT INTO reservations (id_user, id_room, start_date, finish_date, price) VALUES ('$user_id', '$id_room', '$start_date', '$finish_date', '$price')";
+        // Query para insertar la reservación con el ID único generado
+        $insert_query = "INSERT INTO reservations (id, id_user, id_room, start_date, finish_date, price) 
+                         VALUES ('$reservation_id', '$user_id', '$id_room', '$start_date', '$finish_date', '$price')";
 
         if (mysqli_query($connect, $insert_query)) {
             $update_query = "UPDATE rooms SET available='0' WHERE room_number='$id_room'";
 
-            $reservation_id = mysqli_insert_id($connect);
             if (mysqli_query($connect, $update_query)) {
-                // Realizar un SELECT para obtener detalles de la reservación
-                $confirmation_query = "SELECT * FROM reservations WHERE id='$reservation_id'";
-                $confirmation_result = mysqli_query($connect, $confirmation_query);
-                $reservation_details = mysqli_fetch_assoc($confirmation_result);
-
-                // Redireccionar a la página de confirmación
-                header('Location: confirmation.php?reservation_id=' . $reservation_id);
+                // Redireccionar a la página de confirmación con el ID de reservación
+                header('Location: confirmation.php?reservation_id=' . $reservation_id . '&last_name=' . $user_last_name);
                 exit();
             }
         } else {
-            echo "<div class='alert alert-danger' role='alert'>Error al crear la reservacion: " . mysqli_error($connect) . "</div>";
+            echo "<div class='alert alert-danger' role='alert'>Error al crear la reservación: " . mysqli_error($connect) . "</div>";
         }
     } else {
-        echo "<div class='alert alert-danger' role='alert'>No hay disponibilidad en las fechas seleccionadas</div>";
+        echo "<div class='alert alert-danger mb-0' role='alert'>No hay habitaciones disponibles para las fechas seleccionadas.</div>";
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -143,7 +153,7 @@ if (isset($_POST['submit'])) {
         </header>
 
         <div class="container mt-5">
-            <h2>Bienvenido, <?php echo $user_name; ?></h2>
+            <h2>Bienvenido, <?php echo $user_name; ?> <?php echo $user_last_name; ?></h2>
             <h3>Hacer una nueva reservación</h3>
             <form action="" method="post" class="mb-4">
                 <!-- Tipo de habitacion a seleccionar -->
@@ -167,7 +177,7 @@ if (isset($_POST['submit'])) {
                     <input type="date" id="reservation_departure_date" name="reservation_departure_date" class="form-control" required>
                 </div>
 
-                <button type="submit" name="submit" class="btn btn-primary">Agregar Cita</button>
+                <button type="submit" name="submit" class="btn btn-primary">Agregar Reservación</button>
             </form>
         </div>
     </body>

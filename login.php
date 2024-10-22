@@ -20,6 +20,9 @@ if (isset($_POST['enviar'])) {
     $insert_query = "INSERT INTO users (name, last_name, email, password, phone) VALUES ('$user_name', '$user_last_name', '$user_email', '$hashed_password', '$user_phone')";
 
     if (mysqli_query($connect, $insert_query)) {
+        // Tomar el id registrado recientemente
+        $user_id = mysqli_insert_id($connect);
+
         // Redireccionar después de la inserción exitosa
         header('Location: reservations.php?id='.$user_id);
         exit();
